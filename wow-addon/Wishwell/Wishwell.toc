@@ -1,0 +1,12 @@
+## Interface: 16001
+## Title: Wishwell
+## Notes: Loot database for WoW Forever with a wishlist and character preview. Browse what drops, try it on, and get told when your items drop.
+## Author: Squirt
+## Version: 1.2.0
+## SavedVariables: WishwellDB
+## IconTexture: Interface\Icons\INV_Misc_Note_02
+## X-Category: Bags & Inventory
+
+DataForever.lua
+DataQuests.lua
+Wishwell.lua

@@ -1,0 +1,79 @@
+# Wishwell TBC changelog
+
+## 1.2.0
+- Wisp explains how the game works: mount speed and riding, rested XP, the hit, expertise and defense caps, crit, haste, armor penetration, resilience, mana regeneration, spell damage scaling, heroic keys, reputation, talents and respec costs, dying and repairs, loot rolls, professions, the global cooldown and the Hearthstone. Ask "how does mount speed work?" or "what is the hit cap?". Where it can, it adds a line about your own character.
+- Wisp knows what ordinary creatures drop and how often, world drops included: ask where a green, a recipe or a cloth drops, or what a creature drops. A world drop is described by the levels and zones of what drops it. The chances come from the CMaNGOS TBC database, a community reconstruction of the loot tables.
+- Talents: hovering a talent in the tree shows what it does and how many points it takes at most. The tooltip now also fills on clients where it came up empty.
+- Settings: Window size has four sizes (Small, Medium, Large, Extra large) in place of the Smaller window switch.
+- Settings: Wishlist drop alert switches the chat line and on-screen message for a wishlist drop on or off. Tell my group (off to begin with) also says it in party or raid chat.
+- Pinned recipes: with a profession window open, the wisp offers Pin recipe. A pinned recipe stays on screen with how many of each material you have and need, after the window is closed. /ww pins.
+- Settings are in four sections (Window, Wisp, Pop-ups, Loot), picked from buttons, so nothing needs scrolling.
+- How-the-game-works answers now also read what you are wearing and the buffs on you, name your class and build, and end with what to do about it (for threat: what to take, what to use, what to go easy on).
+- Wisp answers how-the-game-works questions ("why do I pull so much threat?") from the tooltips of your own talents and spells, word for word, with which talents you have taken and your threat on your target right now.
+- Check me: a button on Wisp's page (or "check me", "am I specced right", "how do I do the most damage") that checks your talents, stats, gear and enchants against your build and lists your biggest upgrades.
+- Wisp works out what kind of question it is from its words, not set phrases: "where can I get better weapons for my level", "I need new gear", "where should I go to level". If it is unsure it gives its best guess and says so.
+- When Wisp finds nothing it offers things it can answer, not a web search. Item answers say whether the item is an upgrade for you. It also answers "where should I level" and "my professions".
+- Wisp matches more loosely: apostrophes and hyphens do not matter ("kaelthas", "mana tombs"), a misspelled word is put right and answered ("I think you mean Hogger"), and extra words around a name are let go.
+- Wisp knows how crafted items are made (profession, skill and reagents) and which reputation and standing a reward needs. The BiS check says so for the pieces you are missing.
+- Wisp understands questions about you: "what should I do next", "best upgrade" (or for one slot, or in one raid), "which dungeon should I run", "my quests", "my wishlist", your gold, XP and training, and what level a zone is.
+- Wisp follows up: after an answer, "where is he", "what does it drop" and "wish for it" are about the thing just answered.
+- Wishlist tracker: your wishlist as a small list on screen that you can drag anywhere, with what drops where you are standing first. /ww tracker, or Settings.
+- The dungeon pop-up is now something the wisp says: rounder, with bullet points, and the wisp perched on its corner.
+- A welcome page: the wisp, a greeting by name, and a tile for each part of Wishwell with a line about what is waiting there. Settings has "Welcome page" to open where you left off instead.
+- Wisp's answers are colour coded: who in orange, where in green, quests in gold, items in their rarity colour, on softer off-white text.
+- Wisp gives a Wowhead link to copy with its answers, and a Wowhead search when it finds nothing.
+- Wisp: "am I in BiS gear?" checks what you are wearing against the best-in-slot list for your build and phase, and lists what you are missing and where it comes from.
+- Wisp has more to say: a lot more small talk, with variety, and a short remark after its answers. Settings has "Wisp's remarks" to switch the remarks off.
+- Wisp talks back: it answers hello, thanks and help, speaks in the first person, and chirps when it answers.
+- Wisp explains abbreviations ("SSC", "BiS", "VC") and checks which one you meant; "yes" and "no" answer what it just asked.
+- A misspelled name gets "did you mean" with the nearest names.
+- Wisp: "check my stats" reads your own stats and sets them against your build: what you have, what is capped, how far short the rest are, and what to work on first.
+
+## 1.1.0
+- Wisp has its own icon on its tab: the wisp itself.
+- A taller header: the name and a bigger Ask box get a row of their own.
+- Five labelled tabs in place of ten icons: Wisp, Next, Gear, Quests and Me. Gear and Me show their pages as buttons in the header.
+- Quest guide: it now works from your quest log. Stops are what is left to kill or collect, the hand-in for finished quests, and new quests to pick up.
+- Normal and heroic dungeons are separate lists, in the menu, the dungeon pop-up and What next?.
+- A dungeon's loot is loaded as you walk in.
+- Click a row whose text is cut off to read all of it.
+- The minimap button works with minimap addons such as SexyMap and HidingBar.
+- Removed the Switch (log out) button from the Characters tab.
+- Removed leftover "BETA" and "OLD" placeholder quests.
+- Upgrade advice is judged for your talent build, not just your class.
+- Talents, Spell training, Quests and Professions show a summary of the tab in place of the character.
+- The window is a little smaller. Settings can put it back to full size.
+- Closing the quest map, or clicking Back to Wishwell on it, returns to the quest list.
+- New setting: Dungeon loot pop-up. When on, it shows once per visit, not again after a death.
+- Dungeons the game names with a prefix ("Coilfang: The Underbog") are recognised, so their loot shows.
+- Bag tooltips: the upgrade advice is hooked both ways the game offers. /ww tipcheck says why an item got no advice.
+- Every TBC raid and dungeon drop is loaded in the background after you log in. Settings can switch that off.
+- Talents: a Spend points button puts your free points into the build you picked. It asks first.
+- Talents: the three trees are drawn on the left, showing where your points are and where the build puts them.
+- Talents: nothing is promised for a level past 70; points that cannot fit say a talent reset is needed.
+- Upgrade advice ranks stats in the order the Icy Veins TBC Classic guide for your build gives, and shows each stat's place on that list.
+- Item sets: picking a class shows only that class's sets (its armor types, and no sets made for other classes).
+- The window closes when combat starts. Settings can switch that off.
+- Talents: a full-width tree view with a build menu, a marker on your next talent, and Spend next point / Spend all.
+- Quest guide: a small window that points you to the nearest quest giver, with distance and direction. /ww guide.
+- Ask: type a question and get an answer from Wishwell's data, including every Classic and TBC NPC, item and quest objective (the WishwellTBC_World folder).
+- Stat names in the comparison are shortened (Stam, Agi, AP, Crit).
+- A smoother look: a dark window with rounded edges, rounded panels and soft gold buttons. Settings has "Smooth look" to go back to the game's own art.
+- Ask opens on a short list of examples to click instead of a block of text.
+- Rounded corners from Wishwell's own artwork on the window, panels, buttons and pop-ups.
+- The left pane shows its facts as cards with bigger text.
+- An Ask box in the header on every tab, and an Ask tab.
+- Ask is now Ask Wisp. It understands plurals ("cabal initiates"), says where a creature roams, and names the quests that want it.
+- Wisp is a chat: your questions on the right, answers and the things they are about under them, a box to type in at the bottom, and New chat.
+- The dungeon loot pop-up does not come back after a /reload inside the dungeon.
+- Closing in combat also closes the dungeon pop-up, and no longer depends on one game event. A window you open mid-fight stays open.
+
+## 1.0.0
+- First release, for The Burning Crusade Anniversary.
+- Loot for every TBC and Classic raid and dungeon, with heroic-only drops labelled.
+- Wishlist, character preview, item sets, spell training, and upgrade tips with reasons.
+- Quests from level 1 to 70 by zone, class and race, including Outland, Blood Elves and Draenei.
+- Professions (Enchanting included), a Characters tab, gold goals and a settings page.
+- Talents: pick damage, tank or healing and see which talent to take next, level by level.
+- Click a quest to open the world map with a pin on the quest giver.
+- Item tooltips show the full stat-by-stat comparison without the Wishwell window open.

@@ -1,0 +1,14 @@
+## Interface: 20506
+## Title: Wishwell TBC
+## Notes: Loot database for The Burning Crusade with a wishlist and character preview. Browse what drops, try it on, and get told when your items drop.
+## Author: Squirt
+## Version: 1.2.0
+## SavedVariables: WishwellTBCDB
+## IconTexture: Interface\Icons\INV_Misc_Note_02
+## X-Category: Bags & Inventory
+
+Data.lua
+DataQuests.lua
+DataTalents.lua
+DataBis.lua
+WishwellTBC.lua
