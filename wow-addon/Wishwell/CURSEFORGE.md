@@ -1,4 +1,4 @@
-# Wishwell
+# Wishwell Forever
 
 A loot database for **WoW Forever**, in the game. See what drops anywhere, try it on your character, mark what you want, and get told the moment it drops. Works solo, at any level.
 

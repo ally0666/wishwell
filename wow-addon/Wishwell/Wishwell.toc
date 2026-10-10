@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: Wishwell
+## Title: Wishwell Forever
 ## Notes: Loot database for WoW Forever with a wishlist and character preview. Browse what drops, try it on, and get told when your items drop.
 ## Author: Squirt
 ## Version: 1.2.0

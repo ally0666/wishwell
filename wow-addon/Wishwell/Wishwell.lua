@@ -4593,7 +4593,7 @@ do
     -- "what should I do next?"
     if Has(asked, "whats new", "what is new", "what changed", "changelog", "change log", "patch notes", "release notes", "what did you learn") then
       Ask.mood = "news"
-      Add(rows, Task("Wishwell " .. VERSION) .. "\n- " .. table.concat(NEWS, "\n- "), WISP)
+      Add(rows, Task("Wishwell Forever " .. VERSION) .. "\n- " .. table.concat(NEWS, "\n- "), WISP)
       return true
     end
     if Has(asked, "what should i do", "what next", "what now", "what to do", "whats next", "what's next", "what do i do") then
@@ -6233,7 +6233,7 @@ function UI.Feedback(question)
     hideOnEscape = true,
     preferredIndex = 3,
   }
-  UI.lastFeedback = "Wishwell " .. VERSION .. ": Wisp couldn't answer \"" .. tostring(question) .. "\""
+  UI.lastFeedback = "Wishwell Forever " .. VERSION .. ": Wisp couldn't answer \"" .. tostring(question) .. "\""
   StaticPopup_Show("WISHWELL_FEEDBACK", nil, nil, UI.lastFeedback)
 end
 
@@ -6651,7 +6651,7 @@ function UI.Build()
   end
 
   if native then
-    frame:SetTitle("Wishwell")
+    frame:SetTitle("Wishwell Forever")
     if frame.SetPortraitToAsset then frame:SetPortraitToAsset("Interface\\Icons\\INV_Misc_Note_02") end
     -- The template's one big inset is replaced by two of our own (character and list).
     if type(frame.Inset) == "table" and frame.Inset.Hide then frame.Inset:Hide() end
@@ -6659,7 +6659,7 @@ function UI.Build()
     -- No title bar: the name, and a thin gold line under the header.
     local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", header, "TOPLEFT", 66, -18)
-    title:SetText("Wishwell")
+    title:SetText("Wishwell Forever")
     local rule = frame:CreateTexture(nil, "BORDER")
     rule:SetPoint("TOPLEFT", 12, -54)
     rule:SetPoint("TOPRIGHT", -12, -54)
@@ -8758,7 +8758,7 @@ do
     end
     local lines = {}
     for i = 1, math.min(#NEWS, 5) do tinsert(lines, { icon = ART .. "WispIcon.tga", text = NEWS[i] }) end
-    Toast.Present("Wishwell " .. VERSION, "Updated. Here is what's new:", lines, #NEWS > 5 and "Click for the full list." or "", true, function()
+    Toast.Present("Wishwell Forever " .. VERSION, "Updated. Here is what's new:", lines, #NEWS > 5 and "Click for the full list." or "", true, function()
       -- The window may never have been opened this session: open it on Wisp first.
       Wishwell_Toggle("ask")
       UI.AskNow("whats new")
@@ -10464,11 +10464,11 @@ local function SetupMinimapButton()
       db.minimapIcon.hide = db.minimapHidden and true or false
       local launcher = ldb:NewDataObject("Wishwell", {
         type = "launcher",
-        text = "Wishwell",
+        text = "Wishwell Forever",
         icon = "Interface\\Icons\\INV_Misc_Note_02",
         OnClick = function() Wishwell_Toggle() end,
         OnTooltipShow = function(tip)
-          tip:AddLine("Wishwell")
+          tip:AddLine("Wishwell Forever")
           tip:AddLine("Click to open. Drag to move.", 1, 1, 1)
         end,
       })
@@ -10514,7 +10514,7 @@ local function SetupMinimapButton()
   btn:SetScript("OnDragStop", function(self) self:SetScript("OnUpdate", nil) end)
   btn:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-    GameTooltip:SetText("Wishwell")
+    GameTooltip:SetText("Wishwell Forever")
     GameTooltip:AddLine("Click to open. Drag to move.", 1, 1, 1)
     GameTooltip:Show()
   end)

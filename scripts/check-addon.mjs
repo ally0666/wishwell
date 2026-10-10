@@ -798,7 +798,7 @@ function check(label, ok) {
     WishwellDB.smooth = false -- the game's own window art, not Wishwell's rounded look
     SlashCmdList.WISHWELL("loot")`, 'open')
   check('the window uses the game frame, title and portrait', ev(`rawget(WishwellFrame, "template")`) === 'ButtonFrameTemplate'
-    && ev(`rawget(WishwellFrame, "title")`) === 'Wishwell' && ev(`rawget(WishwellFrame, "portrait") ~= nil`) === true)
+    && ev(`rawget(WishwellFrame, "title")`) === 'Wishwell Forever' && ev(`rawget(WishwellFrame, "portrait") ~= nil`) === true)
   check('the tabs are the game side tabs, with the current one lit', ev(`rawget(WishwellFrame.tabs.gear, "template")`) === 'LargeSideTabButtonTemplate'
     && ev(`rawget(WishwellFrame.tabs.gear, "checked")`) === true && ev(`rawget(WishwellFrame.tabs.me, "checked")`) === false)
   run(`rawget(WishwellFrame.tabs.me, "mouseUp")(WishwellFrame.tabs.me, "LeftButton", true)`, 'tab')

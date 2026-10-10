@@ -1,4 +1,4 @@
-# Wishwell (WoW addon)
+# Wishwell Forever (WoW addon)
 
 A loot database for WoW Forever, in the game. Browse what drops anywhere, try it on your character, mark what you want, and get told when it drops. Works solo at any level.
 
@@ -165,7 +165,7 @@ Gear swapping for situational gear, an Undermine Reel tracker, and camping objec
 
 1. Zip the **Wishwell** folder (the zip should contain `Wishwell/Wishwell.toc`, not loose files).
 2. Log into [CurseForge](https://authors.curseforge.com/) → **Create project** → World of Warcraft.
-3. Name: **Wishwell**. Category: **Bags & Inventory** (and **Tooltip** or **Class** if it lets you pick more). Supported game: **Forever**.
+3. Name: **Wishwell Forever**. Category: **Bags & Inventory** (and **Tooltip** or **Class** if it lets you pick more). Supported game: **Forever**.
 4. Project image: `logo-400.png`. Redraw it with `node scripts/make-wishwell-logo.mjs`.
 5. Paste the text from `CURSEFORGE.md` as the long description, and `CHANGELOG.md` as the file's changelog.
 6. Upload `Wishwell-<version>.zip`.
