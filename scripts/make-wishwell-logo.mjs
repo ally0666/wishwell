@@ -1,9 +1,11 @@
-// Draws wow-addon/Wishwell/logo-400.png (the CurseForge project image) from the wisp art.
-//   node scripts/make-wishwell-logo.mjs
+// Draws the CurseForge project image from the wisp art.
+//   node scripts/make-wishwell-logo.mjs          wow-addon/Wishwell/logo-400.png: warm glow, gold frame
+//   node scripts/make-wishwell-logo.mjs --tbc    wow-addon/WishwellTBC/logo-400.png: a fel-green wisp on an Outland sky
 import { readFileSync, writeFileSync } from 'node:fs'
 import { deflateSync, crc32 } from 'node:zlib'
 
-const DIR = new URL('../wow-addon/Wishwell/', import.meta.url)
+const TBC = process.argv.includes('--tbc')
+const DIR = new URL(TBC ? '../wow-addon/WishwellTBC/' : '../wow-addon/Wishwell/', import.meta.url)
 const SIZE = 400
 const SCALE = 9 // the wisp is 32x32 pixel art
 
@@ -50,11 +52,27 @@ for (let y = 0; y < SIZE; y++) {
     const glow = Math.max(0, 1 - d) ** 2
     const edge = Math.min(x, y, SIZE - 1 - x, SIZE - 1 - y)
     let color = [14 + glow * 46, 13 + glow * 34, 18 + glow * 10, 255]
-    if (edge < 4) color = [38, 30, 16, 255]
-    else if (edge < 10) color = [201, 162, 74, 255]
-    else if (edge < 12) color = [92, 70, 28, 255]
+    if (TBC) {
+      // Outland: a purple sky that darkens downward, a fel-green glow, and a few hard-edged stars.
+      const sky = 1 - y / SIZE
+      color = [22 + sky * 30 + glow * 18, 10 + sky * 8 + glow * 96, 34 + sky * 52 + glow * 12, 255]
+      const sx = Math.floor(x / 5), sy = Math.floor(y / 5)
+      const star = (sx * 7349 + sy * 9151 + sx * sy * 31) % 211
+      if (star === 0 && d > 0.62) color = [214, 196, 255, 255]
+      else if (star === 1 && d > 0.7) color = [150, 255, 140, 255]
+    }
+    const frame = TBC ? [[12, 30, 14], [126, 224, 78], [34, 86, 30]] : [[38, 30, 16], [201, 162, 74], [92, 70, 28]]
+    if (edge < 4) color = [...frame[0], 255]
+    else if (edge < 10) color = [...frame[1], 255]
+    else if (edge < 12) color = [...frame[2], 255]
     put(x, y, color)
   }
+}
+
+// The same wisp with a fel flame: its blue flame and dark outline turn green, its body stays as it is.
+function fel([r, g, b, a]) {
+  if (b <= r + 10) return [r, g, b, a]
+  return [Math.round(r * 0.7 + 14), Math.min(255, Math.round(Math.max(g, b) * 1.04)), Math.round(b * 0.32), a]
 }
 
 // The wisp: first flame frame with the happy face, scaled up with hard pixel edges.
@@ -64,7 +82,7 @@ for (let y = 0; y < CELL * SCALE; y++) {
   for (let x = 0; x < CELL * SCALE; x++) {
     const sx = Math.floor(x / SCALE)
     const sy = Math.floor(y / SCALE)
-    put(left + x, top + y, body.at(sx, sy))
+    put(left + x, top + y, TBC ? fel(body.at(sx, sy)) : body.at(sx, sy))
     put(left + x, top + y, face.at(3 * CELL + sx, sy))
   }
 }
