@@ -1,6 +1,9 @@
 # Wishwell changelog
 
 ## 1.2.0
+- Comparing a one-hander or an off hand while you hold a two-hander now says it is one half of what would replace it, and an off hand is compared with the two-hander, not an empty slot.
+- Drops shared by a group member are only taken for the raid or dungeon you are in, only for items the game knows, and 40 at a time.
+- What next? and Quests ask the game about each quest once and keep the answer until your quests change, so the window redraws faster.
 - Pinned recipes: with your profession window open, the wisp offers Pin recipe. A pinned recipe stays on screen with how many of each material you have and need, after you close the window. Up to 6, with + and - for how many to make. `/ww pins` puts them away and brings them back.
 - Talents: hovering a talent in the tree shows what it does and how many points it takes at most.
 - Settings: Window size has four sizes (Small, Medium, Large, Extra large) in place of the Smaller window switch.

@@ -943,6 +943,16 @@ do
       if wornLink and tonumber(strmatch(wornLink, "item:(%d+)")) == id then wearing = true end
       local worn = wornLink and Stats(wornLink) or {}
       local against = wornLink and strmatch(wornLink, "%[(.-)%]") or nil
+      -- Holding a two-hander, a one-hander or an off hand is one half of what would replace it.
+      local pair = false
+      if equipLoc ~= "INVTYPE_2HWEAPON" and (slot == 16 or slot == 17) then
+        local mainLink = Plain(GetInventoryItemLink("player", 16))
+        local mainId = mainLink and tonumber(strmatch(mainLink, "item:(%d+)")) or nil
+        pair = mainId ~= nil and Items.Facts(mainId) == "INVTYPE_2HWEAPON"
+        if pair and slot == 17 then
+          worn, against = Stats(mainLink) or {}, strmatch(mainLink, "%[(.-)%]")
+        end
+      end
       if equipLoc == "INVTYPE_2HWEAPON" then
         -- A two-hander also replaces whatever is in the off hand.
         local offLink = Plain(GetInventoryItemLink("player", 17))
@@ -968,7 +978,7 @@ do
           if math.abs(a[2]) ~= math.abs(b[2]) then return math.abs(a[2]) > math.abs(b[2]) end
           return a[1] < b[1]
         end)
-        best = { score = score, diffs = diffs, against = against, slot = slot }
+        best = { score = score, diffs = diffs, against = against, slot = slot, pair = pair }
       end
     end
     if best then best.wearing = wearing end
@@ -1409,16 +1419,31 @@ do
     return table.concat(parts, ", ") .. " only"
   end
 
+  -- Every redraw of What next? and Quests asks about thousands of quests, so the game's
+  -- answers are kept until something about quests changes (Quests.Fresh).
+  local doneCache, logCache = {}, {}
+  function Quests.Fresh()
+    doneCache, logCache = {}, {}
+  end
+
   function Quests.Done(id)
-    if C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted then
-      return Plain(C_QuestLog.IsQuestFlaggedCompleted(id)) == true
+    local known = doneCache[id]
+    if known == nil then
+      known = false
+      if C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted then known = Plain(C_QuestLog.IsQuestFlaggedCompleted(id)) == true end
+      doneCache[id] = known
     end
-    return false
+    return known
   end
 
   function Quests.InLog(id)
-    if C_QuestLog and C_QuestLog.IsOnQuest then return Plain(C_QuestLog.IsOnQuest(id)) == true end
-    return false
+    local known = logCache[id]
+    if known == nil then
+      known = false
+      if C_QuestLog and C_QuestLog.IsOnQuest then known = Plain(C_QuestLog.IsOnQuest(id)) == true end
+      logCache[id] = known
+    end
+    return known
   end
 
   -- The quest that has to be finished first, or nil if nothing is in the way.
@@ -2063,8 +2088,8 @@ do
     return earned / hours
   end
 
-  -- What this character is saving for. Until the player sets one, a character under 40 is
-  -- shown the rough price of a first mount as a suggestion.
+  -- What this character is saving for. Until the player sets one, a character under 30 is
+  -- shown the rough price of a first mount (riding and the mount itself) as a suggestion.
   function Chars.Goal()
     local me = Chars.Me()
     if type(me.goal) == "table" and type(me.goal.amount) == "number" then
@@ -5735,6 +5760,41 @@ function UI.OpenSet(set)
   Refresh()
 end
 
+-- A set's bonuses: { { pieces needed, what it does }, ... }. Where the data has none they are
+-- read off the tooltip of one of its pieces, which lists them as "(2) Set: ...". A bonus you
+-- already have shows without its number, and is kept with 0 pieces.
+local setTip
+function UI.SetBonuses(set)
+  if #set.bonus > 0 or set.bonusRead then return set.bonus end
+  if setTip == nil then
+    local ok, made = pcall(CreateFrame, "GameTooltip", "WishwellTBCSetTip", nil, "GameTooltipTemplate")
+    setTip = ok and type(made) == "table" and made or false
+  end
+  if not setTip then return set.bonus end
+  for _, id in ipairs(Sets.Items(set)) do
+    setTip:SetOwner(WorldFrame or UIParent, "ANCHOR_NONE")
+    setTip:ClearLines()
+    local found = {}
+    if pcall(setTip.SetHyperlink, setTip, "item:" .. id) then
+      for i = 2, tonumber((setTip:NumLines())) or 0 do
+        local left = _G["WishwellTBCSetTipTextLeft" .. i]
+        local text = type(left) == "table" and left.GetText and Plain(left:GetText()) or nil
+        if type(text) == "string" then
+          local count, what = strmatch(text, "^%((%d+)%) [^:]+: (.+)$")
+          if not count then what = strmatch(text, "^Set: (.+)$") end
+          if what then tinsert(found, { tonumber(count) or 0, what }) end
+        end
+      end
+    end
+    -- A piece the game has not loaded yet has an empty tooltip: try the next, or again later.
+    if #found > 0 then
+      set.bonus, set.bonusRead = found, true
+      break
+    end
+  end
+  return set.bonus
+end
+
 -- Tooltip for a set: its pieces and bonuses.
 function UI.SetTooltip(owner, set)
   GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
@@ -5745,8 +5805,8 @@ function UI.SetTooltip(owner, set)
   elseif set.pieces then
     for _, name in ipairs(set.pieces) do GameTooltip:AddLine(name, 0.6, 0.6, 0.6) end
   end
-  for _, bonus in ipairs(set.bonus) do
-    GameTooltip:AddLine("(" .. bonus[1] .. ") Set: " .. bonus[2], 0.1, 1, 0.1, true)
+  for _, bonus in ipairs(UI.SetBonuses(set)) do
+    GameTooltip:AddLine((bonus[1] > 0 and ("(" .. bonus[1] .. ") ") or "") .. "Set: " .. bonus[2], 0.1, 1, 0.1, true)
   end
   GameTooltip:Show()
 end
@@ -8128,6 +8188,9 @@ function UI.Build()
         end
         local why = Compare.Why(result, Plain((UnitClass("player"))))
         if why then GameTooltip:AddLine(why, 1, 1, 1, true) end
+        if result.pair then
+          GameTooltip:AddLine("You're holding a two-hander. This is one half of what would replace it, so the other hand would add to these numbers.", 1, 0.6, 0.2, true)
+        end
         GameTooltip:AddLine(result.against and ("Compared with " .. result.against .. ":") or "That slot is empty, so you gain:", 1, 0.82, 0)
         if #result.diffs == 0 then
           GameTooltip:AddLine("No stat changes", 0.8, 0.8, 0.8)
@@ -8907,9 +8970,16 @@ do
       if Places.Known(a) then
         local boss = CleanLabel(c)
         local added = false
-        if boss then
+        -- Only for the raid or dungeon you are in yourself, only items the game knows,
+        -- and no more than a boss could drop: a group member cannot fill your lists with junk.
+        local exists = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
+        if boss and Run.place == a then
+          local count = 0
           for id in string.gmatch(b, "%d+") do
-            if Items.Remember(a, tonumber(id), boss) then added = true end
+            count = count + 1
+            if count > 40 then break end
+            id = tonumber(id)
+            if (not exists or Plain((exists(id))) ~= nil) and Items.Remember(a, id, boss) then added = true end
           end
         end
         if added then Refresh() end
@@ -9290,6 +9360,9 @@ do
     end
     local why = Compare.Why(result, Plain((UnitClass("player"))))
     if why then tooltip:AddLine("Why: " .. why, 1, 1, 1, true) end
+    if result.pair then
+      tooltip:AddLine("You're holding a two-hander. This is one half of what would replace it, so the other hand would add to these numbers.", 1, 0.6, 0.2, true)
+    end
     tooltip:AddLine(result.against and ("Compared with " .. result.against .. ":") or "That slot is empty, so you gain:", 1, 0.82, 0)
     for i = 1, math.min(#result.diffs, 8) do
       local diff = result.diffs[i]
@@ -10464,6 +10537,7 @@ end
 local redrawPending = false
 
 events:SetScript("OnEvent", function(_, event, arg1, arg2, arg3, arg4, arg5)
+  if strsub(event, 1, 6) == "QUEST_" or event == "PLAYER_LEVEL_UP" or event == "PLAYER_ENTERING_WORLD" then Quests.Fresh() end
   if event == "ADDON_LOADED" then
     if arg1 ~= "WishwellTBC" then return end
     WishwellTBCDB = WishwellTBCDB or {}
@@ -10660,6 +10734,7 @@ SLASH_WISHWELLTBC2 = "/wishwell"
 SLASH_WISHWELLTBC3 = "/wishlist"
 SlashCmdList.WISHWELLTBC = function(msg)
   if not db then return end
+  Quests.Fresh()
   msg = strlower(strtrim(msg or ""))
   if msg == "ask" or strsub(msg, 1, 4) == "ask " then
     WishwellTBC_Toggle("ask")

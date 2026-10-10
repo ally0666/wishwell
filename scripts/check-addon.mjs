@@ -492,8 +492,10 @@ function check(label, ok) {
   check('a wishlist item on a roll gets an alert', /Wishlist item up for a roll: .*Ephemeral Choker/.test(printed()))
   check('new drops are learned under the boss', ev(`WishwellDB.learned.thanes[279999]`) === 'Faldrim Anvilmar')
   check('and shared with the group', /^L:thanes:[\d,]*279999[\d,]*:Faldrim Anvilmar$/m.test(ev(`table.concat(Fake.sent, "\\n")`)))
-  run(`Fake.Fire("CHAT_MSG_ADDON", "Wishwell", "L:barrow:266300:Elder Tangleclaw", "RAID", "Raider3-Realm")`, 'recv')
-  check('drops shared by others are learned', ev(`WishwellDB.learned.barrow[266300]`) === 'Elder Tangleclaw')
+  run(`Fake.Fire("CHAT_MSG_ADDON", "Wishwell", "L:thanes:266300:Faldrim Anvilmar", "RAID", "Raider3-Realm")
+    Fake.Fire("CHAT_MSG_ADDON", "Wishwell", "L:barrow:266301:Elder Tangleclaw", "RAID", "Raider3-Realm")`, 'recv')
+  check('drops shared by others are learned for the place you are in', ev(`WishwellDB.learned.thanes[266300]`) === 'Faldrim Anvilmar')
+  check('but not for a place you are not in', ev(`WishwellDB.learned.barrow == nil or WishwellDB.learned.barrow[266301] == nil`) === true)
   run(`Fake.Fire("CHAT_MSG_LOOT", "You receive loot: " .. Fake.Link(270227, "ff0070dd", "Ephemeral Choker") .. ".")`, 'got')
   check('looting a wishlist item takes it off the list', wish(270227) === undefined && /You got .*Ephemeral Choker/.test(printed()))
 
@@ -2383,6 +2385,23 @@ function check(label, ok) {
   check('a priest sees the priest set and cloth sets, not plate', /Absolution Regalia/.test(setRows()) && /Arcanoweave Vestments/.test(setRows()) && !/Adamantite Battlegear/.test(setRows()))
   run(`WishwellTBCDB.classFilter = "MAGE" SlashCmdList.WISHWELLTBC("sets")`, 'mage sets')
   check('a mage sees cloth sets but not the priest-only one', /Arcanoweave Vestments/.test(setRows()) && !/Absolution Regalia/.test(setRows()))
+  // Set bonuses are not in the data: they are read off the tooltip of one of the set's pieces.
+  run(`Fake.tipLines = {}
+    rawset(GameTooltip, "AddLine", function(self, text) Fake.tipLines[#Fake.tipLines + 1] = text end)
+    for _, w in ipairs(Fake.frames) do local it = rawget(w, "item")
+      if it and rawget(w, "shown") and it.bonus and w.scripts.OnEnter then
+        w.scripts.OnEnter(w)
+        rawset(WishwellTBCSetTip, "SetHyperlink", function() end)
+        rawset(WishwellTBCSetTip, "NumLines", function() return 4 end)
+        WishwellTBCSetTipTextLeft2 = { GetText = function() return "Arcanoweave Vestments (0/3)" end }
+        WishwellTBCSetTipTextLeft3 = { GetText = function() return "(2) Set: Reduces the chance your spells are interrupted." end }
+        WishwellTBCSetTipTextLeft4 = { GetText = function() return "(3) Set: Increases arcane resistance by 8." end }
+        Fake.tipLines = {}
+        w.scripts.OnEnter(w)
+        break
+      end end
+    rawset(GameTooltip, "AddLine", nil)`, 'hover a set')
+  check('hovering a set shows its bonuses, read from a piece', /\(2\) Set: Reduces the chance your spells are interrupted\. \| \(3\) Set: Increases arcane resistance by 8\./.test(ev(`table.concat(Fake.tipLines, " | ")`)))
   run(`WishwellTBCDB.classFilter = "ALL" SlashCmdList.WISHWELLTBC("sets")`, 'all sets')
   check('All classes still shows everything', /Absolution Regalia\|Adamantite Battlegear/.test(setRows()))
   run(`WishwellTBCDB.classFilter = "MINE"`, 'mine')

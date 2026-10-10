@@ -1,6 +1,10 @@
 # Wishwell TBC changelog
 
 ## 1.2.0
+- Item sets show their bonuses when you hover them, read from the tooltip of one of the pieces.
+- Comparing a one-hander or an off hand while you hold a two-hander now says it is one half of what would replace it, and an off hand is compared with the two-hander, not an empty slot.
+- Drops shared by a group member are only taken for the raid or dungeon you are in, only for items the game knows, and 40 at a time.
+- What next? and Quests ask the game about each quest once and keep the answer until your quests change, so the window redraws faster.
 - Wisp explains how the game works: mount speed and riding, rested XP, the hit, expertise and defense caps, crit, haste, armor penetration, resilience, mana regeneration, spell damage scaling, heroic keys, reputation, talents and respec costs, dying and repairs, loot rolls, professions, the global cooldown and the Hearthstone. Ask "how does mount speed work?" or "what is the hit cap?". Where it can, it adds a line about your own character.
 - Wisp knows what ordinary creatures drop and how often, world drops included: ask where a green, a recipe or a cloth drops, or what a creature drops. A world drop is described by the levels and zones of what drops it. The chances come from the CMaNGOS TBC database, a community reconstruction of the loot tables.
 - Talents: hovering a talent in the tree shows what it does and how many points it takes at most. The tooltip now also fills on clients where it came up empty.
