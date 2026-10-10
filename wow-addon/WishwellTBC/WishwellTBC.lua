@@ -18,6 +18,20 @@ local db
 local frame
 local playerClass
 
+-- This version, and what is new in it: shown once after an update, and by /ww news.
+-- Keep it to short lines; the first five go in the pop-up. Update both with every release.
+local VERSION = "1.2.0"
+local NEWS = {
+  "Ask Wisp how the game works: \"how does mount speed work?\"",
+  "Wisp knows what creatures drop and how often, world drops too",
+  "And what is skinned, pickpocketed, fished up or found in chests",
+  "Pin recipe on a profession window keeps its materials on screen",
+  "Item sets show their bonuses when you hover them",
+  "Settings: window size, wishlist drop alert, Tell my group",
+  "Hover a talent in the tree for what it does and its most points",
+  "No answer from Wisp? A Send button tells the author what you asked",
+}
+
 local function Print(msg)
   DEFAULT_CHAT_FRAME:AddMessage("|cffffd100Wishwell:|r " .. tostring(msg))
 end
@@ -2875,6 +2889,7 @@ do
     { key = "dropAlert", group = "loot", label = "Wishlist drop alert", text = "The chat line and on-screen message when something on your wishlist drops." },
     { key = "dropSay", group = "loot", label = "Tell my group", text = "Also says it in party or raid chat when something on your wishlist drops.", off = true },
     { key = "pinPrompt", group = "popups", label = "Pin recipe button", text = "The wisp's Pin recipe button above your profession windows." },
+    { key = "news", group = "popups", label = "What's new", text = "A run-down from the wisp the first time you log in after an update." },
     { key = "tracker", group = "popups", label = "Wishlist tracker", text = "A small list of your wishlist on screen, to drag wherever you like." },
     { key = "hub", group = "window", label = "Welcome page", text = "Open on the welcome page. Off: open where you left off." },
     { key = "chatter", group = "wisp", label = "Wisp's remarks", text = "The little remarks Wisp adds after its answers." },
@@ -3361,7 +3376,46 @@ do
         end
         if #quests > 0 then tinsert(parts, "is a reward from the quest" .. (#quests > 1 and "s " or " ") .. table.concat(quests, ", ")) end
       end
-      if type(w[8]) == "table" then
+      -- Other ways to get it: skinned, pickpocketed, fished up, or out of a chest or node.
+      local boxed = false
+      for _, how in ipairs(type(w[11]) == "table" and w[11] or {}) do
+        local kind, ids, chances, count = how[1], type(how[2]) == "table" and how[2] or {}, type(how[3]) == "table" and how[3] or {}, how[4] or 0
+        local names = {}
+        if kind == 3 then
+          for i, area in ipairs(ids) do
+            local a = world.areas[area]
+            if a and a[1] ~= "" then tinsert(names, Spot(a[1]) .. (chances[i] and (" (" .. Items.Percent(chances[i]) .. ")") or "")) end
+          end
+        elseif kind == 4 then
+          for i, objectId in ipairs(ids) do
+            local o = world.objects[objectId]
+            if o then
+              local where = Where(world, o[2], o[3], o[4])
+              tinsert(names, Bold(o[1]) .. (where and (" in " .. Spot(where)) or "") .. (chances[i] and (" (" .. Items.Percent(chances[i]) .. ")") or ""))
+            end
+          end
+        else
+          names = Names(world, ids, 3, chances)
+          for _, npc in ipairs(ids) do tinsert(people, npc) end
+        end
+        if #names > 0 then
+          local more = count > #names and (", and " .. (count - #names) .. " more") or ""
+          if kind == 1 then
+            -- Skinning tables also hold what herbalists and miners take from a corpse.
+            local low = strlower(w[1])
+            local hide = strfind(low, "leather", 1, true) or strfind(low, "hide", 1, true) or strfind(low, "scale", 1, true) or strfind(low, "pelt", 1, true) or strfind(low, "skin", 1, true)
+            tinsert(parts, (hide and "is skinned from " or "is gathered from the corpse of ") .. table.concat(names, "; ") .. more .. ((how[6] or 0) > 0 and count > #names and (" (" .. strtrim(Level(how[5], how[6])) .. " creatures)") or ""))
+          elseif kind == 2 then
+            tinsert(parts, "can be pickpocketed from " .. table.concat(names, "; ") .. more)
+          elseif kind == 3 then
+            tinsert(parts, "is fished up in " .. table.concat(names, ", ") .. (count > #names and (", and " .. (count - #names) .. " more places") or ""))
+          else
+            boxed = true
+            tinsert(parts, "is found in " .. table.concat(names, "; ") .. more)
+          end
+        end
+      end
+      if type(w[8]) == "table" and not boxed then
         local found = {}
         for _, objectId in ipairs(w[8]) do
           local o = world.objects[objectId]
@@ -4665,6 +4719,11 @@ do
       return true
     end
     -- "what should I do next?"
+    if Has(asked, "whats new", "what is new", "what changed", "changelog", "change log", "patch notes", "release notes", "what did you learn") then
+      Ask.mood = "news"
+      Add(rows, Task("Wishwell TBC " .. VERSION) .. "\n- " .. table.concat(NEWS, "\n- "), WISP)
+      return true
+    end
     if Has(asked, "what should i do", "what next", "what now", "what to do", "whats next", "what's next", "what do i do") then
       local advice = Home.Rows()
       local titles = {}
@@ -4787,7 +4846,9 @@ do
       end
     end
     -- "where should I level?", "where do I quest next?": where the quest XP is.
-    if Has(asked, "where should i level", "where to level", "where should i quest", "where to quest", "where do i level", "where do i quest", "best zone", "which zone", "what zone") then
+    if Has(asked, "most experience", "most xp", "most exp", "best experience", "best xp", "more experience", "more xp", "fastest xp", "fastest experience",
+      "level fast", "level faster", "level up fast", "level quick", "leveling spot", "levelling spot", "way to level", "get experience", "get xp", "farm xp", "farm experience",
+      "where should i level", "where to level", "where should i quest", "where to quest", "where do i level", "where do i quest", "best zone", "which zone", "what zone") then
       local zones = Quests.ZoneTotals()
       local parts, names = {}, {}
       for _, zone in ipairs(zones) do
@@ -5358,6 +5419,8 @@ do
           { "Which dungeon should I run?", "which dungeon should i run" }, { "Check my stats", "check my stats" } }) do
           tinsert(rows, { ask = true, name = idea[1], text = "Something I can answer", query = idea[2], icon = WISP })
         end
+        if UI.Missed then UI.Missed(asked) end
+        tinsert(rows, { feedback = true, name = "Can't find what you're looking for?", text = "Tell the author what you asked, so I can learn it", query = asked, icon = WISP })
       end
       return rows
     end
@@ -6295,6 +6358,42 @@ end
 
 -- Asks Wisp a question: the question and its answer join the conversation on the Wisp page.
 -- UI.talk = { { q = what was asked, rows = the answer }, ... }, oldest first.
+-- Questions Wisp had no answer for, newest last. /ww missed lists them.
+function UI.Missed(question)
+  if not db or type(question) ~= "string" or question == "" then return end
+  if type(db.missed) ~= "table" then db.missed = {} end
+  for _, old in ipairs(db.missed) do
+    if old == question then return end
+  end
+  tinsert(db.missed, question)
+  while #db.missed > 50 do tremove(db.missed, 1) end
+end
+
+-- A box with the question ready to copy and send to the author. An addon cannot send it itself.
+function UI.Feedback(question)
+  StaticPopupDialogs["WISHWELLTBC_FEEDBACK"] = StaticPopupDialogs["WISHWELLTBC_FEEDBACK"] or {
+    text = "Thanks! An addon cannot send this for you. Press Ctrl+C to copy it, then send it to the addon's author so Wisp can learn it.",
+    button1 = OKAY or "Okay",
+    hasEditBox = true,
+    editBoxWidth = 340,
+    OnShow = function(self, data)
+      local box = self.editBox or self.EditBox
+      if not box then return end
+      box:SetText(data or "")
+      box:SetFocus()
+      box:HighlightText()
+    end,
+    EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
+    EditBoxOnEnterPressed = function(self) self:GetParent():Hide() end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+  }
+  UI.lastFeedback = "Wishwell TBC " .. VERSION .. ": Wisp couldn't answer \"" .. tostring(question) .. "\""
+  StaticPopup_Show("WISHWELLTBC_FEEDBACK", nil, nil, UI.lastFeedback)
+end
+
 function UI.AskNow(question)
   question = strtrim(question or "")
   if question == "" then return end
@@ -7196,6 +7295,8 @@ function UI.Build()
         row.name .. level, table.concat(meta, " · "), row.map and "Map" or nil
     elseif row.advice then
       return row.icon, row.title, row.text, "Go"
+    elseif row.feedback then
+      return row.icon, row.name, row.text, "Send"
     elseif row.ask then
       return row.icon, row.name, row.text, "Ask"
     elseif row.link then
@@ -7278,6 +7379,10 @@ function UI.Build()
         row.go()
         return
       end
+      if row.feedback then
+        UI.Feedback(row.query)
+        return
+      end
       if row.link then
         UI.ShowLink(row.url)
       elseif row.bonus then
@@ -7294,6 +7399,10 @@ function UI.Build()
       if not row then return end
       if row.advice then
         row.go()
+        return
+      end
+      if row.feedback then
+        UI.Feedback(row.query)
         return
       end
       if row.link then
@@ -8775,6 +8884,24 @@ do
   end
 
   -- A one-time hint from the wisp. Each hint is shown once per account, ever.
+  -- The run-down after an update: once for each version, unless switched off. force: show it anyway.
+  function Toast.News(force)
+    if not db then return false end
+    if not force then
+      if db.newsSeen == VERSION then return false end
+      db.newsSeen = VERSION
+      if db.news == false or db.popup == false then return false end
+    end
+    local lines = {}
+    for i = 1, math.min(#NEWS, 5) do tinsert(lines, { icon = ART .. "WispIcon.tga", text = NEWS[i] }) end
+    Toast.Present("Wishwell TBC " .. VERSION, "Updated. Here is what's new:", lines, #NEWS > 5 and "Click for the full list." or "", true, function()
+      -- The window may never have been opened this session: open it on Wisp first.
+      WishwellTBC_Toggle("ask")
+      UI.AskNow("whats new")
+    end)
+    return true
+  end
+
   function Toast.Tip(key, text)
     if not db or db.hints == false then return end
     if type(db.tipsSeen) ~= "table" then db.tipsSeen = {} end
@@ -10540,8 +10667,10 @@ events:SetScript("OnEvent", function(_, event, arg1, arg2, arg3, arg4, arg5)
   if strsub(event, 1, 6) == "QUEST_" or event == "PLAYER_LEVEL_UP" or event == "PLAYER_ENTERING_WORLD" then Quests.Fresh() end
   if event == "ADDON_LOADED" then
     if arg1 ~= "WishwellTBC" then return end
+    local firstRun = WishwellTBCDB == nil
     WishwellTBCDB = WishwellTBCDB or {}
     db = WishwellTBCDB
+    if firstRun then db.newsSeen = VERSION end
     -- Raids and dungeons added in game come back before anything checks place ids.
     local saved = type(db.madeUp) == "table" and db.madeUp or {}
     db.madeUp = {}
@@ -10611,6 +10740,7 @@ events:SetScript("OnEvent", function(_, event, arg1, arg2, arg3, arg4, arg5)
     -- Once the game has settled after logging in, start loading the TBC loot.
     After(10, function() pcall(Items.PreloadAll) end)
     After(4, function() pcall(Tracker.Refresh) end)
+    After(8, function() pcall(Toast.News) end)
     After(4, function() pcall(Pins.Refresh) end)
     -- The quest guide comes back if it was open last time.
     if db.guide then After(3, function() pcall(Guide.Show, true) end) end
@@ -10746,6 +10876,20 @@ SlashCmdList.WISHWELLTBC = function(msg)
       Print("Nothing is pinned yet. Open a profession window, pick a recipe, and click Pin recipe above it.")
     else
       Print(Pins.Toggle() and "Pinned recipes shown." or "Pinned recipes put away.")
+    end
+    return
+  end
+  if msg == "news" or msg == "whats new" or msg == "changelog" then
+    Toast.News(true)
+    return
+  end
+  if msg == "missed" then
+    local missed = type(db.missed) == "table" and db.missed or {}
+    if #missed == 0 then
+      Print("Wisp has answered everything so far.")
+    else
+      Print("Questions Wisp could not answer (" .. #missed .. "):")
+      for _, question in ipairs(missed) do Print("  " .. question) end
     end
     return
   end

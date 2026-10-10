@@ -1,6 +1,11 @@
 # Wishwell changelog
 
 ## 1.2.0
+- What's new: the first time you log in after an update, the wisp gives a run-down of what changed. Click it for the full list, or type `/ww news`. It can be switched off under Settings, Pop-ups.
+- When Wisp has no answer it asks "Can't find what you're looking for?" with a Send button, which puts your question in a box to copy and send to the author. `/ww missed` lists the questions it could not answer.
+- Wisp answers "where can I get the most experience?" and other ways of asking where to level.
+- Wisp explains how the game works, by the level 60 Classic rules Forever is built on: mount speed, rested XP, hit, weapon skill and glancing blows, defense and crushing blows, crit, mana regeneration, spell damage scaling, reputation, talents and respec costs, dying and repairs, loot rolls, professions, the global cooldown and the Hearthstone. Ask "how does mount speed work?".
+- The stat check no longer lists expertise, haste or armor penetration, which this game does not have.
 - Comparing a one-hander or an off hand while you hold a two-hander now says it is one half of what would replace it, and an off hand is compared with the two-hander, not an empty slot.
 - Drops shared by a group member are only taken for the raid or dungeon you are in, only for items the game knows, and 40 at a time.
 - What next? and Quests ask the game about each quest once and keep the answer until your quests change, so the window redraws faster.

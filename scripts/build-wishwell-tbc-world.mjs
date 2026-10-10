@@ -371,7 +371,68 @@ for (const item of items.values()) for (const o of item.objects) usedObjects.add
     }
   }
   for (const n of npcs.values()) if (n.loot) n.loot = n.loot.sort((a, b) => b[1] - a[1] || a[0] - b[0]).slice(0, 12)
-  console.log(`loot tables: ${withDrops} items with droppers, ${worldDrops} of them world drops`)
+  // ---- Other ways to get an item: skinning, pickpocketing, fishing, and chests and nodes ----
+  // A table laid flat: [item] = chance, shared tables folded in.
+  const flatRows = (rows) => {
+    const out = new Map()
+    const chances = rowChances(rows)
+    rows.forEach((r, i) => {
+      if (!r.ref) merge(out, r.item, chances[i])
+      else for (const [item, c] of flatten(r.ref)) merge(out, item, chances[i] * (1 - (1 - c) ** r.times))
+    })
+    return out
+  }
+  const ways = new Map() // [item] = { skin: Map(npc -> chance), pick: ..., fish: Map(area -> chance), box: Map(object -> chance) }
+  const way = (item, kind, from, chance) => {
+    if (!items.has(item)) return
+    if (!ways.has(item)) ways.set(item, {})
+    const w = ways.get(item)
+    if (!w[kind]) w[kind] = new Map()
+    w[kind].set(from, Math.max(w[kind].get(from) || 0, chance))
+  }
+  const skinning = tablesOf('skinning_loot_template')
+  const pockets = tablesOf('pickpocketing_loot_template')
+  const [SKIN, POCKET] = [at('SkinningLootId'), at('PickpocketLootId')]
+  for (const row of rowsIn('creature_template')) {
+    const npc = row[ENTRY]
+    if (!npcs.has(npc)) continue
+    npcs.get(npc).lvl = npcs.get(npc).lvl || [row[MINLEVEL], row[MAXLEVEL]]
+    for (const [kind, table] of [['skin', skinning.get(row[SKIN])], ['pick', pockets.get(row[POCKET])]]) {
+      if (table) for (const [item, c] of flatRows(table)) way(item, kind, npc, c)
+    }
+  }
+  for (const [area, rows] of tablesOf('fishing_loot_template')) {
+    if (areaName.has(area)) for (const [item, c] of flatRows(rows)) way(item, 'fish', area, c)
+  }
+  const objectCols = columns('gameobject_template')
+  const [O_ENTRY, O_TYPE, O_LOOT] = ['entry', 'type', 'data1'].map((name) => objectCols.indexOf(name))
+  const objectLoot = tablesOf('gameobject_loot_template')
+  for (const row of rowsIn('gameobject_template')) {
+    // Chests, plants and veins (type 3) and fishing pools (type 25) keep their loot table in data1.
+    if ((row[O_TYPE] !== 3 && row[O_TYPE] !== 25) || !objects.has(row[O_ENTRY])) continue
+    const table = objectLoot.get(row[O_LOOT])
+    if (table) for (const [item, c] of flatRows(table)) way(item, 'box', row[O_ENTRY], c)
+  }
+  // Kept short: the likeliest few, how many there are in all, and for creatures their levels.
+  const KINDS = { skin: 1, pick: 2, fish: 3, box: 4 }
+  let withWays = 0
+  for (const [id, w] of ways) {
+    const item = items.get(id)
+    item.ways = []
+    for (const [kind, from] of Object.entries(w)) {
+      const all = [...from].sort((a, b) => b[1] - a[1] || a[0] - b[0])
+      const top = all.slice(0, kind === 'fish' ? 4 : 3)
+      let [min, max] = [0, 0]
+      if (kind === 'skin' || kind === 'pick') {
+        min = Math.min(...all.map(([npc]) => npcs.get(npc).lvl[0]))
+        max = Math.max(...all.map(([npc]) => npcs.get(npc).lvl[1]))
+      }
+      if (kind === 'box') for (const [object] of top) usedObjects.add(object)
+      item.ways.push({ kind: KINDS[kind], ids: top.map(([from]) => from), chances: top.map(([, c]) => pct(c)), count: all.length, min, max })
+    }
+    withWays++
+  }
+  console.log(`loot tables: ${withDrops} items with droppers, ${worldDrops} of them world drops; ${withWays} skinned, pickpocketed, fished or found in chests`)
 }
 
 // ---- Crafting and reputation, from AtlasLootClassic ---------------------------------------------
@@ -452,9 +513,10 @@ const lines = [
 for (const [id, n] of [...npcs].sort((a, b) => a[0] - b[0])) {
   lines.push(`[${id}]={${q(n.name)},${n.min},${n.max},${place(n.spot)},${n.flags},${q(n.sub)},${q(n.side)},${n.rank},${n.spot ? n.spot[3] || 1 : 0}},`)
 }
-lines.push('  },', '  -- [id] = { name, item level, level needed, dropped by, how many drop it in all, sold by, quests that reward it, found in,\n  --   the chance (%) from each of "dropped by", and for a world drop { lowest level, highest level, best chance (%), { areas } } }', '  items = {')
+lines.push('  },', '  -- [id] = { name, item level, level needed, dropped by, how many drop it in all, sold by, quests that reward it, found in,\n  --   the chance (%) from each of "dropped by", for a world drop { lowest level, highest level, best chance (%), { areas } },\n  --   and other ways to get it: { { kind (1 skinned, 2 pickpocketed, 3 fished, 4 chest or node), { from }, { chance (%) }, how many in all, lowest level, highest level }, ... } }', '  items = {')
 for (const [id, i] of [...items].sort((a, b) => a[0] - b[0])) {
-  const more = i.world ? `,${list(i.chances)},{${i.world.min},${i.world.max},${i.world.best},${areasOf(i.world.areas)}}` : (i.chances && i.chances.length ? `,${list(i.chances)}` : '')
+  const waysText = i.ways ? `,{${i.ways.map((w) => `{${w.kind},${w.kind === 3 ? areasOf(w.ids) : list(w.ids)},${list(w.chances)},${w.count},${w.min},${w.max}}`).join(',')}}` : ''
+  const more = i.world ? `,${list(i.chances)},{${i.world.min},${i.world.max},${i.world.best},${areasOf(i.world.areas)}}${waysText}` : (i.chances && i.chances.length ? `,${list(i.chances)}${i.ways ? ',0' + waysText : ''}` : (i.ways ? `,0,0${waysText}` : ''))
   lines.push(`[${id}]={${q(i.name)},${i.level},${i.need},${list(i.drops)},${i.dropCount},${list(i.vendors)},${list(i.rewards)},${list(i.objects)}${more}},`)
 }
 lines.push('  },', '  -- [npc] = { item, chance (%), item, chance, ... }: what it drops that few others do, likeliest first', '  loot = {')

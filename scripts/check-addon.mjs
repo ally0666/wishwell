@@ -1347,6 +1347,12 @@ function check(label, ok) {
     Fake.Fire("TRADE_SKILL_LIST_UPDATE") Fake.Advance(2)`, 'linked')
   check('someone else\'s linked profession is not read as yours', /Copper Chain Belt/.test(rows()))
 
+  // How the game works, by the level 60 rules.
+  const said = (question) => (run(`SlashCmdList.WISHWELL("ask ${question}")`, 'ask'), strip(ev(`(function() local last for _, e in ipairs(WishwellChat.order) do if e.kind == "a" then last = e.text end end return last end)()`)))
+  check('Wisp explains mount speed by the level 60 rules', /^Mount speed\n[\s\S]*Journeyman \(150\), from level 60: \+100%[\s\S]*There is no flying\.[\s\S]*It is in beta, so some may change\./.test(said('how does mount speed work')))
+  check('and talents: 51 points', /^Talents\n[\s\S]*51 points at level 60/.test(said('how many talent points do i get')))
+  run(`SlashCmdList.WISHWELL("prof")`, 'back to professions')
+
   // Pinned recipes, read from this game's profession window.
   const pins = () => strip(ev(`(function() if not WishwellPins or not rawget(WishwellPins, "shown") then return "hidden" end
     local t = {} for _, h in ipairs(WishwellPins.heads) do if rawget(h, "shown") then t[#t + 1] = rawget(h.name, "text") .. " " .. rawget(h.count, "text") end end
@@ -2043,7 +2049,7 @@ function check(label, ok) {
   run(`WishwellTBCSettings_wisp.scripts.OnClick()`, 'wisp section')
   check('each section lists its own switches, none needing a scroll', switches() === 'sound,hints,chatter')
   run(`WishwellTBCSettings_popups.scripts.OnClick()`, 'popups section')
-  check('pop-ups and the tracker are together', switches() === 'popup,lootPopup,wisp,pinPrompt,tracker')
+  check('pop-ups and the tracker are together', switches() === 'popup,lootPopup,wisp,pinPrompt,news,tracker')
   run(`WishwellTBCSettings_loot.scripts.OnClick()`, 'loot section')
   check('and so are the loot switches', switches() === 'tips,share,size' || switches() === 'tips,share,dropAlert,dropSay,preload')
   check('the section buttons go away on other pages', (run(`SlashCmdList.WISHWELLTBC("loot")`, 'away'), ev(`rawget(WishwellTBCSettings_window, "shown")`)) === false)
@@ -2479,6 +2485,21 @@ function check(label, ok) {
   check('who sells an item', /^Rough Arrow is sold by .+ in .+ \(\d+\.\d, \d+\.\d\)/.test(ask('who sells rough arrow')))
   check('where an NPC is, with a Map button', /^Hogger is a level 11 elite, found around Elwynn Forest \(25\.8, 89\.8\) \(5 spots; the pin marks the middle\)\./.test(ask('where is Hogger'))
     && / \| Hogger  Level 11 = Elwynn Forest \(25\.8, 89\.8\) \[Map\]/.test(rows()))
+  // Where to level, however it is asked.
+  check('"where can i get the most experience" is a where-to-level question', !/couldn't find|best guess/.test(ask('where can i get the most experience')))
+  // No answer: the question is kept, and a button offers to send it on.
+  run(`WishwellTBCDB.missed = nil StaticPopup_Show = function(which, a, b, data) Fake.box = which .. " " .. tostring(data) end`, 'feedback setup')
+  check('with no answer Wisp offers to send the question on', /Can't find what you're looking for\? = Tell the author what you asked, so I can learn it \[Send\]/.test(ask('zzqx flurble')))
+  check('and remembers what it could not answer', ev(`WishwellTBCDB.missed[1]`) === 'zzqx flurble')
+  run(`for _, l in ipairs(WishwellTBCChat.lines) do if rawget(l, "shown") and l.row and l.row.feedback then l.go.scripts.OnClick() break end end`, 'send')
+  check('Send puts the question in a box to copy', ev(`Fake.box`) === 'WISHWELLTBC_FEEDBACK Wishwell TBC 1.2.0: Wisp couldn\'t answer "zzqx flurble"')
+  // What's new.
+  check('"what\'s new" lists this version\'s changes', /^Wishwell TBC 1\.2\.0\n- Ask Wisp how the game works/.test(ask("what's new")))
+  run(`WishwellTBCDB.newsSeen = "1.1.0" Fake.Fire("PLAYER_LOGIN") Fake.Fire("PLAYER_ENTERING_WORLD")
+    Fake.shownNews = WishwellTBCDB.newsSeen`, 'logged in after an update')
+  check('the update run-down pops up once', ev(`(function() SlashCmdList.WISHWELLTBC("news") return rawget(WishwellTBCToast, "shown") and rawget(WishwellTBCToast.title, "text") end)()`) === 'Wishwell TBC 1.2.0')
+  run(`WishwellTBCFrame:Hide() WishwellTBCDB.page = 'home' WishwellTBCToast.scripts.OnClick(WishwellTBCToast, 'LeftButton')`, 'click the run-down')
+  check('clicking the run-down opens Wisp on the full list', ev(`rawget(WishwellTBCFrame, 'shown') and WishwellTBCDB.page`) === 'ask' && /^Wishwell TBC 1\.2\.0\n- Ask Wisp/.test(rows()))
   check('how the game works: mount speed', /^Mount speed\nYour Riding skill sets how fast[\s\S]*Journeyman \(150\): \+100%[\s\S]*Artisan \(300\): \+280% flying/.test(ask('how does mount speed work')))
   run(`GetNumSkillLines = function() return 1 end GetSkillLineInfo = function() return "Riding", false, false, 150 end`, 'riding skill')
   check('and it says where your own Riding skill puts you', /Your Riding skill is 150: \+100% on the ground\./.test(ask('how fast is an epic mount')))
@@ -2491,6 +2512,9 @@ function check(label, ok) {
   check('a world drop is described by the levels and zones of what drops it',
     /^Blade of Wizardry is a world drop: \d+ kinds of level \d+-\d+ creature can drop it, most of them in .+\. Likeliest: .+ \((under )?[\d.]+%\)/.test(ask('where does blade of wizardry drop')))
   check('an ordinary drop names who drops it and how often', /^Primal Life is dropped by .+ \(\d+%\)\./.test(ask('where does primal life drop')))
+  check('leather says what it is skinned from', /Knothide Leather[^\n]* is skinned from .+ \(\d+%\)/.test(ask('where do i get knothide leather')))
+  check('a fish says where it is fished up', /is fished up in .+ \((under )?[\d.]+%\)/.test(ask('where do i get spotted feltail')))
+  check('a pool fish says which pools', /is found in .*School.* \((under )?[\d.]+%\)/.test(ask('where do i get furious crawdad')))
   check('an ordinary creature lists its own drops with their chances',
     /^Flesh Eater is a .*Drops \d+ things? I know of/.test(ask('what does flesh eater drop')) && /Flesh Eater · \d+%/.test(rows()))
   check('what a boss drops', /^Attumen the Huntsman is a .*Drops \d+ things? I know of/.test(ask('what does attumen the huntsman drop')) && /Attumen the Huntsman/.test(rows().split(' | ')[3]))

@@ -47,7 +47,7 @@ Wishwell never rolls, picks or equips anything. The one thing it will do for you
 - Quests, quest XP and where quests start: [Questie](https://github.com/Questie/Questie).
 - Talent trees, builds and the best-in-slot gear lists: [wowsims TBC](https://github.com/wowsims/tbc) (MIT licence). It has no lists for healers.
 - NPCs, items, vendors and quest objectives for the Ask box: [Questie](https://github.com/Questie/Questie)'s TBC database (Classic and TBC).
-- What creatures drop and how often, world drops included: the [CMaNGOS TBC database](https://github.com/cmangos/tbc-db), a community reconstruction of the loot tables, so the chances are close rather than exact.
+- What creatures drop and how often, world drops, skinning, pickpocketing, fishing and chests included: the [CMaNGOS TBC database](https://github.com/cmangos/tbc-db), a community reconstruction of the loot tables, so the chances are close rather than exact.
 - What is crafted (profession, skill, reagents) and what each reputation sells: [AtlasLootClassic](https://github.com/Hoizame/AtlasLootClassic).
 - Stat priority for each build: the [Icy Veins TBC Classic](https://www.icy-veins.com/tbc-classic/) class guides.
 

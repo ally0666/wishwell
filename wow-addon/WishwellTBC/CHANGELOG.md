@@ -1,6 +1,10 @@
 # Wishwell TBC changelog
 
 ## 1.2.0
+- What's new: the first time you log in after an update, the wisp gives a run-down of what changed. Click it for the full list, or type `/ww news`. It can be switched off under Settings, Pop-ups.
+- When Wisp has no answer it asks "Can't find what you're looking for?" with a Send button, which puts your question in a box to copy and send to the author. `/ww missed` lists the questions it could not answer.
+- Wisp answers "where can I get the most experience?" and other ways of asking where to level.
+- Wisp also knows what is skinned or gathered from creatures, what can be pickpocketed, what is fished up where, and what is in chests, veins, plants and fishing pools, each with its chance. Ask "where do I get knothide leather?".
 - Item sets show their bonuses when you hover them, read from the tooltip of one of the pieces.
 - Comparing a one-hander or an off hand while you hold a two-hander now says it is one half of what would replace it, and an off hand is compared with the two-hander, not an empty slot.
 - Drops shared by a group member are only taken for the raid or dungeon you are in, only for items the game knows, and 40 at a time.

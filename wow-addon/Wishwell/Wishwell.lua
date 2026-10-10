@@ -17,6 +17,18 @@ local db
 local frame
 local playerClass
 
+-- This version, and what is new in it: shown once after an update, and by /ww news.
+-- Keep it to short lines; the first five go in the pop-up. Update both with every release.
+local VERSION = "1.2.0"
+local NEWS = {
+  "Ask Wisp how the game works: \"how does mount speed work?\"",
+  "Pin recipe on your profession window keeps its materials on screen",
+  "Settings: window size, wishlist drop alert, Tell my group",
+  "Settings are in four sections, so nothing needs scrolling",
+  "A one-hander against your two-hander says it is half of a pair",
+  "No answer from Wisp? A Send button tells the author what you asked",
+}
+
 local function Print(msg)
   DEFAULT_CHAT_FRAME:AddMessage("|cffffd100Wishwell:|r " .. tostring(msg))
 end
@@ -2931,6 +2943,7 @@ do
     { key = "dropAlert", group = "loot", label = "Wishlist drop alert", text = "The chat line and on-screen message when something on your wishlist drops." },
     { key = "dropSay", group = "loot", label = "Tell my group", text = "Also says it in party or raid chat when something on your wishlist drops.", off = true },
     { key = "pinPrompt", group = "popups", label = "Pin recipe button", text = "The wisp's Pin recipe button above your profession window." },
+    { key = "news", group = "popups", label = "What's new", text = "A run-down from the wisp the first time you log in after an update." },
     { key = "tracker", group = "popups", label = "Wishlist tracker", text = "A small list of your wishlist on screen, to drag wherever you like." },
     { key = "hub", group = "window", label = "Welcome page", text = "Open on the welcome page. Off: open where you left off." },
     { key = "chatter", group = "wisp", label = "Wisp's remarks", text = "The little remarks Wisp adds after its answers." },
@@ -3644,7 +3657,7 @@ do
   local function StatCheck(rows)
     local build = Compare.Build()
     if not build then
-      Add(rows, "Pick a build on the Talents tab (or spend a talent point) and I can check your stats against it.", "Interface\\Icons\\INV_Misc_Book_09")
+      Add(rows, "Spend a talent point and I can check your stats against the tree you are going down.", "Interface\\Icons\\INV_Misc_Book_09")
       return
     end
     local ranged = playerClass == "HUNTER"
@@ -3655,7 +3668,9 @@ do
       for _, kind in ipairs(kinds) do
         local name = ((build.caster and (kind == "hit" or kind == "crit" or kind == "haste")) and "Spell " or "") .. (build.label[kind] or kind)
         local have, how, cap = Have(kind, build.caster, ranged)
-        if not have then
+        if kind == "exp" or kind == "haste" or kind == "arp" then
+          -- Stats this game does not have.
+        elseif not have then
           tinsert(parts, name)
           if #todo < 3 then tinsert(todo, name) end
         elseif cap then
@@ -3673,7 +3688,7 @@ do
           if #todo < 3 then tinsert(todo, name) end
         end
       end
-      tinsert(lines, place .. ". " .. table.concat(parts, "  /  "))
+      if #parts > 0 then tinsert(lines, (#lines + 1) .. ". " .. table.concat(parts, "  /  ")) end
     end
     Ask.mood = "stats"
     local text = "Stat check for " .. (build.name or "your build") .. ", most important first.\n" .. table.concat(lines, "\n")
@@ -4576,6 +4591,11 @@ do
       return true
     end
     -- "what should I do next?"
+    if Has(asked, "whats new", "what is new", "what changed", "changelog", "change log", "patch notes", "release notes", "what did you learn") then
+      Ask.mood = "news"
+      Add(rows, Task("Wishwell " .. VERSION) .. "\n- " .. table.concat(NEWS, "\n- "), WISP)
+      return true
+    end
     if Has(asked, "what should i do", "what next", "what now", "what to do", "whats next", "what's next", "what do i do") then
       local advice = Home.Rows()
       local titles = {}
@@ -4698,7 +4718,9 @@ do
       end
     end
     -- "where should I level?", "where do I quest next?": where the quest XP is.
-    if Has(asked, "where should i level", "where to level", "where should i quest", "where to quest", "where do i level", "where do i quest", "best zone", "which zone", "what zone") then
+    if Has(asked, "most experience", "most xp", "most exp", "best experience", "best xp", "more experience", "more xp", "fastest xp", "fastest experience",
+      "level fast", "level faster", "level up fast", "level quick", "leveling spot", "levelling spot", "way to level", "get experience", "get xp", "farm xp", "farm experience",
+      "where should i level", "where to level", "where should i quest", "where to quest", "where do i level", "where do i quest", "best zone", "which zone", "what zone") then
       local zones = Quests.ZoneTotals()
       local parts, names = {}, {}
       for _, zone in ipairs(zones) do
@@ -4824,6 +4846,139 @@ do
   end
 
   -- The answer to a question, as rows for the list.
+  -- How the game works: the rules players ask about, as Classic has them at level 60,
+  -- which is what WoW Forever is built on. keys: what a question has to say. offer: a question to run on "yes".
+  -- mine: a line about this character, where the game will say.
+  local function SkillRank(wanted)
+    if not (GetNumSkillLines and GetSkillLineInfo) then return nil end
+    for i = 1, tonumber(Plain(GetNumSkillLines())) or 0 do
+      local name, _, _, rank = GetSkillLineInfo(i)
+      if Plain(name) == wanted then return tonumber(Plain(rank)) end
+    end
+    return nil
+  end
+  local HOW = {
+    { name = "Mount speed", keys = { "mount speed", "mount speeds", "mounts", "mount", "riding", "riding skill", "epic mount", "move faster", "run faster", "flying", "fly", "flying mount" },
+      lines = {
+        "Your " .. Bold("Riding skill") .. " sets how fast a mount goes, not the mount itself.",
+        "Apprentice (75), from level 40: " .. Bold("+60%") .. ". Journeyman (150), from level 60: " .. Bold("+100%") .. ", the epic speed.",
+        "There is no flying.",
+        Task("Small boosts") .. "  Carrot on a Stick +3%, Mithril Spurs +3%, the glove riding enchant +2%.",
+        "Riding trainers show what the next step costs.",
+      },
+      mine = function()
+        local rank = SkillRank("Riding")
+        if not rank then return nil end
+        return "Your Riding skill is " .. rank .. ": " .. (rank >= 150 and "+100%" or rank >= 75 and "+60%" or "no mount speed yet") .. "."
+      end },
+    { name = "Rested XP", keys = { "rested", "rested xp", "rested experience", "rest xp", "blue bar", "rest" },
+      lines = {
+        "Logging out or standing in an " .. Spot("inn or a city") .. " builds " .. Bold("rested XP") .. ": the blue part of your XP bar.",
+        "It builds at 5% of a level every 8 hours, up to " .. Bold("one and a half levels") .. " (about 10 days). Logged out anywhere else it builds four times slower.",
+        "While you have it, " .. Bold("kills give double XP") .. ". Quests and exploring do not use it up, and get no bonus from it.",
+      } },
+    { name = "Hit", keys = { "hit cap", "hit work", "hit works", "spell hit", "hit chance", "miss chance", "hit capped", "melee hit", "how much hit" },
+      lines = {
+        "Hit comes as a percentage on gear: \"Improves your chance to hit by 1%\".",
+        Task("Melee and ranged") .. "  Against a raid boss you need " .. Bold("9%") .. " for special attacks and two-handers never to miss. With weapon skill of 305 or more it is 6%. Against a creature of your own level it is 5%.",
+        Task("Dual wield") .. "  White swings miss 19% more often, so hit past the cap still helps them.",
+        Task("Spells") .. "  A raid boss resists 17% of spells. 1% always misses, so the cap is " .. Bold("16%") .. ".",
+      } },
+    { name = "Weapon skill", keys = { "weapon skill", "weapon skills", "glancing", "glancing blow", "glancing blows", "glance" },
+      lines = {
+        "Your skill with a weapon type goes up as you use it, to " .. Bold("5 for each level") .. ": 300 at level 60. Low skill means misses.",
+        "Against a raid boss, 40% of white swings are " .. Bold("glancing blows") .. " that do less damage: about 65% of normal at 300 skill, 85% at 305, and 95% at 308.",
+        "So gear and racials that add weapon skill are worth a lot to melee: they cut misses and make glancing blows hit harder.",
+      } },
+    { name = "Defense and crushing blows", keys = { "defense cap", "defense work", "defense works", "crit immune", "crit immunity", "uncrittable", "uncrushable", "crushing blow", "crushing blows", "crush", "crushed", "how much defense" },
+      lines = {
+        Task("Crit immunity") .. "  A raid boss crits 5.6% of the time. " .. Bold("440 defense") .. " at level 60 takes that to nothing.",
+        Task("Crushing blows") .. "  A raid boss lands a crushing blow (150% damage) 15% of the time. You shut them out when miss + dodge + parry + block add up to " .. Bold("102.4%") .. ". Warriors do it with Shield Block. Druids cannot, and make up for it with armor and health.",
+      } },
+    { name = "Crit", keys = { "crit work", "crit works", "crit cap", "critical strike work", "how much crit" },
+      lines = {
+        "Crit comes as a percentage on gear: \"Improves your chance to get a critical strike by 1%\".",
+        "A melee or ranged crit does 200% damage. A spell crit does 150%, and more with talents.",
+        "Agility gives melee and ranged crit, Intellect gives spell crit; how much depends on your class.",
+      } },
+    { name = "Mana regeneration", keys = { "five second rule", "5 second rule", "fsr", "mana regen", "mana regeneration", "mp5", "spirit work", "spirit works", "spirit regen", "regen mana" },
+      lines = {
+        Bold("Spirit") .. " gives mana back only while you have not spent mana on a spell for " .. Bold("5 seconds") .. ": the five second rule. Some talents and Mage Armor let part of it through while casting.",
+        Bold("Mana per 5 seconds (mp5)") .. " on gear always works, casting or not.",
+      } },
+    { name = "Spell damage and healing", keys = { "spell power work", "spell power works", "spell damage work", "spell damage works", "coefficient", "coefficients", "spell coefficient", "bonus healing work", "healing power", "spell power scale", "scale with spell" },
+      lines = {
+        "A spell gets a share of your bonus spell damage or healing set by its " .. Bold("cast time: cast time / 3.5") .. ". A 3.5 second cast gets all of it, a 2.5 second cast 71%, a 1.5 second cast or an instant 43%.",
+        "Damage and healing over time spells go by how long they last: duration / 15, and the full amount at 15 seconds or more.",
+        "Spells that hit many targets, slow, or do something extra get less.",
+      } },
+    { name = "Reputation", keys = { "reputation work", "reputation works", "rep work", "rep works", "reputation levels", "rep levels", "reputation", "exalted", "revered", "honored" },
+      lines = {
+        "Standing with a faction goes " .. Bold("Neutral, Friendly, Honored, Revered, Exalted") .. ".",
+        "Neutral to Friendly takes 3,000 reputation, Friendly to Honored 6,000, Honored to Revered 12,000, Revered to Exalted 21,000.",
+        "It comes from the faction's quests, kills and turn-in items. Better standing opens its goods and takes up to 20% off prices. Humans gain 10% more.",
+      } },
+    { name = "Talents", keys = { "talents work", "talent points", "respec", "respec cost", "reset talents", "unlearn talents", "reset my talents", "how many talent points" },
+      lines = {
+        "You get your first talent point at level 10 and one every level after: " .. Bold("51 points at level 60") .. ".",
+        "A class trainer will " .. Bold("reset") .. " them. It costs 1 gold the first time, then 5, then 10, and 5 more each time up to 50 gold. The price drops by 5 gold a month you go without, down to 10.",
+      } },
+    { name = "Dying and repairs", keys = { "durability", "repair", "repairs", "repair cost", "spirit healer", "resurrection sickness", "res sickness", "when i die", "dying", "death penalty" },
+      lines = {
+        "Dying to a creature takes " .. Bold("10% durability") .. " off everything you are wearing. Dying to another player takes none.",
+        "Running back to your body costs nothing more. A " .. Spot("spirit healer") .. " brings you back on the spot for another 25% off everything, bags included, and Resurrection Sickness: all stats and damage down 75% for up to 10 minutes.",
+        "An item at 0 durability goes red and gives you nothing until it is repaired. Any vendor with the anvil icon repairs.",
+      } },
+    { name = "Loot rolls", keys = { "need or greed", "need greed", "need roll", "greed roll", "loot rolls", "loot roll", "rolling", "roll need", "roll greed", "master loot", "master looter" },
+      lines = {
+        "When something good drops in a group, everyone picks " .. Bold("Need") .. ", " .. Bold("Greed") .. " or Pass. Any Need beats every Greed; the highest roll among the winners takes it.",
+        "Need is for something you will wear as an upgrade. Greed is for selling or disenchanting.",
+        "In raids the leader usually sets Master Looter and hands items out. I'll tell you when a roll is an upgrade for you.",
+      } },
+    { name = "Professions", keys = { "professions work", "profession work", "how many professions", "profession cap", "max profession", "profession skill", "level professions" },
+      lines = {
+        "You can have " .. Bold("two main professions") .. ", plus Cooking, First Aid and Fishing, which everyone can learn.",
+        "Skill goes to " .. Bold("300") .. ". Each rank (Journeyman at 75, Expert at 150, Artisan at 225) is learned from a trainer before you can go on.",
+        "A recipe's colour says if it will raise your skill: orange always, yellow usually, green rarely, grey never.",
+        "The Professions page under Me lists what you can make right now.",
+      } },
+    { name = "The global cooldown", keys = { "global cooldown", "gcd" },
+      lines = {
+        "Nearly every ability starts a shared " .. Bold("1.5 second") .. " cooldown on your other abilities. Rogues and cat-form Druids have 1 second.",
+      } },
+    { name = "Hearthstone", keys = { "hearthstone", "hearth", "set my home", "set home", "bind location" },
+      lines = {
+        "Your " .. Bold("Hearthstone") .. " takes you back to the inn you chose, once every " .. Bold("60 minutes") .. ".",
+        "Talk to any " .. Spot("innkeeper") .. " and pick \"Make this inn your home\" to change where it goes.",
+      } },
+  }
+  local function HowTopic(asked, flags, subject)
+    if flags.where or flags.who or flags.drop or flags.drops or flags.sells or flags.sell or flags.buy then return nil end
+    local asking = flags.how or flags.why or flags.what or flags.whats or flags.explain or flags.does or flags["do"] or flags.work or flags.works
+      or flags.is or flags.can or flags.when or flags.tell or flags.should
+    local best, long = nil, 0
+    local padded = " " .. asked .. " "
+    for _, topic in ipairs(HOW) do
+      for _, key in ipairs(topic.keys) do
+        if #key > long and (subject == key or (asking and strfind(padded, " " .. key .. " ", 1, true))) then best, long = topic, #key end
+      end
+    end
+    return best
+  end
+  local function How(rows, topic)
+    Ask.mood, Ask.topic, Ask.topicItem = "how", nil, nil
+    local text = Task(topic.name) .. "\n" .. table.concat(topic.lines, "\n")
+    local mine = topic.mine and topic.mine() or nil
+    if mine then text = text .. "\n|cff40ff40" .. mine .. "|r" end
+    text = text .. "\n|cff999999These are the Classic rules Forever is built on. It is in beta, so some may change.|r"
+    if topic.offer then
+      text = text .. "\nWant me to check yours?"
+      Ask.pending = topic.offer
+    end
+    Add(rows, text, WISP)
+  end
+  Ask.HOW = HOW
+
   function Ask.Answer(text)
     local rows = {}
     local asked = strlower(strtrim(text or ""))
@@ -4911,6 +5066,15 @@ do
         return rows
       elseif term then
         Add(rows, Task(short) .. " is short for " .. Bold(term[1]) .. ": " .. term[2] .. ".", WISP)
+        return rows
+      end
+    end
+
+    -- "how does mount speed work?": the rules of the game.
+    do
+      local topic = HowTopic(asked, flags, subject)
+      if topic then
+        How(rows, topic)
         return rows
       end
     end
@@ -5093,6 +5257,8 @@ do
           { "Which dungeon should I run?", "which dungeon should i run" }, { "Check my stats", "check my stats" } }) do
           tinsert(rows, { ask = true, name = idea[1], text = "Something I can answer", query = idea[2], icon = WISP })
         end
+        if UI.Missed then UI.Missed(asked) end
+        tinsert(rows, { feedback = true, name = "Can't find what you're looking for?", text = "Tell the author what you asked, so I can learn it", query = asked, icon = WISP })
       end
       return rows
     end
@@ -6035,6 +6201,42 @@ end
 
 -- Asks Wisp a question: the question and its answer join the conversation on the Wisp page.
 -- UI.talk = { { q = what was asked, rows = the answer }, ... }, oldest first.
+-- Questions Wisp had no answer for, newest last. /ww missed lists them.
+function UI.Missed(question)
+  if not db or type(question) ~= "string" or question == "" then return end
+  if type(db.missed) ~= "table" then db.missed = {} end
+  for _, old in ipairs(db.missed) do
+    if old == question then return end
+  end
+  tinsert(db.missed, question)
+  while #db.missed > 50 do tremove(db.missed, 1) end
+end
+
+-- A box with the question ready to copy and send to the author. An addon cannot send it itself.
+function UI.Feedback(question)
+  StaticPopupDialogs["WISHWELL_FEEDBACK"] = StaticPopupDialogs["WISHWELL_FEEDBACK"] or {
+    text = "Thanks! An addon cannot send this for you. Press Ctrl+C to copy it, then send it to the addon's author so Wisp can learn it.",
+    button1 = OKAY or "Okay",
+    hasEditBox = true,
+    editBoxWidth = 340,
+    OnShow = function(self, data)
+      local box = self.editBox or self.EditBox
+      if not box then return end
+      box:SetText(data or "")
+      box:SetFocus()
+      box:HighlightText()
+    end,
+    EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
+    EditBoxOnEnterPressed = function(self) self:GetParent():Hide() end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+  }
+  UI.lastFeedback = "Wishwell " .. VERSION .. ": Wisp couldn't answer \"" .. tostring(question) .. "\""
+  StaticPopup_Show("WISHWELL_FEEDBACK", nil, nil, UI.lastFeedback)
+end
+
 function UI.AskNow(question)
   question = strtrim(question or "")
   if question == "" then return end
@@ -6934,6 +7136,8 @@ function UI.Build()
         row.name .. level, table.concat(meta, " · "), row.map and "Map" or nil
     elseif row.advice then
       return row.icon, row.title, row.text, "Go"
+    elseif row.feedback then
+      return row.icon, row.name, row.text, "Send"
     elseif row.ask then
       return row.icon, row.name, row.text, "Ask"
     elseif row.bonus then
@@ -7014,6 +7218,10 @@ function UI.Build()
         row.go()
         return
       end
+      if row.feedback then
+        UI.Feedback(row.query)
+        return
+      end
       if row.bonus then
         UI.ShowPage("sets")
         UI.OpenSet(row)
@@ -7028,6 +7236,10 @@ function UI.Build()
       if not row then return end
       if row.advice then
         row.go()
+        return
+      end
+      if row.feedback then
+        UI.Feedback(row.query)
         return
       end
       if row.npc then
@@ -8536,6 +8748,24 @@ do
   end
 
   -- A one-time hint from the wisp. Each hint is shown once per account, ever.
+  -- The run-down after an update: once for each version, unless switched off. force: show it anyway.
+  function Toast.News(force)
+    if not db then return false end
+    if not force then
+      if db.newsSeen == VERSION then return false end
+      db.newsSeen = VERSION
+      if db.news == false or db.popup == false then return false end
+    end
+    local lines = {}
+    for i = 1, math.min(#NEWS, 5) do tinsert(lines, { icon = ART .. "WispIcon.tga", text = NEWS[i] }) end
+    Toast.Present("Wishwell " .. VERSION, "Updated. Here is what's new:", lines, #NEWS > 5 and "Click for the full list." or "", true, function()
+      -- The window may never have been opened this session: open it on Wisp first.
+      Wishwell_Toggle("ask")
+      UI.AskNow("whats new")
+    end)
+    return true
+  end
+
   function Toast.Tip(key, text)
     if not db or db.hints == false then return end
     if type(db.tipsSeen) ~= "table" then db.tipsSeen = {} end
@@ -10315,8 +10545,10 @@ events:SetScript("OnEvent", function(_, event, arg1, arg2, arg3, arg4, arg5)
   if strsub(event, 1, 6) == "QUEST_" or event == "PLAYER_LEVEL_UP" or event == "PLAYER_ENTERING_WORLD" then Quests.Fresh() end
   if event == "ADDON_LOADED" then
     if arg1 ~= "Wishwell" then return end
+    local firstRun = WishwellDB == nil
     WishwellDB = WishwellDB or {}
     db = WishwellDB
+    if firstRun then db.newsSeen = VERSION end
     -- Raids and dungeons added in game come back before anything checks place ids.
     local saved = type(db.madeUp) == "table" and db.madeUp or {}
     db.madeUp = {}
@@ -10386,6 +10618,7 @@ events:SetScript("OnEvent", function(_, event, arg1, arg2, arg3, arg4, arg5)
     -- Once the game has settled after logging in, start loading the loot.
     After(10, function() pcall(Items.PreloadAll) end)
     After(4, function() pcall(Tracker.Refresh) end)
+    After(8, function() pcall(Toast.News) end)
     After(4, function() pcall(Pins.Refresh) end)
     -- The quest guide comes back if it was open last time.
     if db.guide then After(3, function() pcall(Guide.Show, true) end) end
@@ -10521,6 +10754,20 @@ SlashCmdList.WISHWELL = function(msg)
       Print("Nothing is pinned yet. Open a profession window, pick a recipe, and click Pin recipe above it.")
     else
       Print(Pins.Toggle() and "Pinned recipes shown." or "Pinned recipes put away.")
+    end
+    return
+  end
+  if msg == "news" or msg == "whats new" or msg == "changelog" then
+    Toast.News(true)
+    return
+  end
+  if msg == "missed" then
+    local missed = type(db.missed) == "table" and db.missed or {}
+    if #missed == 0 then
+      Print("Wisp has answered everything so far.")
+    else
+      Print("Questions Wisp could not answer (" .. #missed .. "):")
+      for _, question in ipairs(missed) do Print("  " .. question) end
     end
     return
   end
