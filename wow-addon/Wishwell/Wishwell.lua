@@ -4860,16 +4860,16 @@ do
   local HOW = {
     { name = "Mount speed", keys = { "mount speed", "mount speeds", "mounts", "mount", "riding", "riding skill", "epic mount", "move faster", "run faster", "flying", "fly", "flying mount" },
       lines = {
-        "Your " .. Bold("Riding skill") .. " sets how fast a mount goes, not the mount itself.",
-        "Apprentice (75), from level 40: " .. Bold("+60%") .. ". Journeyman (150), from level 60: " .. Bold("+100%") .. ", the epic speed.",
+        "The " .. Bold("mount") .. " sets how fast you go: a normal mount is " .. Bold("+60%") .. ", an epic mount " .. Bold("+100%") .. ".",
+        "Your " .. Bold("Riding skill") .. " only decides which mounts you can ride: Apprentice (75), from level 40, for normal mounts. Journeyman (150), from level 60, for epic mounts.",
         "There is no flying.",
-        Task("Small boosts") .. "  Carrot on a Stick +3%, Mithril Spurs +3%, the glove riding enchant +2%.",
+        Task("Small boosts") .. "  Carrot on a Stick +3%, Mithril Spurs +4%, the glove riding enchant +2%.",
         "Riding trainers show what the next step costs.",
       },
       mine = function()
         local rank = SkillRank("Riding")
         if not rank then return nil end
-        return "Your Riding skill is " .. rank .. ": " .. (rank >= 150 and "+100%" or rank >= 75 and "+60%" or "no mount speed yet") .. "."
+        return "Your Riding skill is " .. rank .. ": " .. (rank >= 150 and "you can ride epic mounts (+100%) and normal ones (+60%)" or rank >= 75 and "you can ride normal mounts (+60%), and epic ones at 150" or "not enough to ride a mount yet") .. "."
       end },
     { name = "Rested XP", keys = { "rested", "rested xp", "rested experience", "rest xp", "blue bar", "rest" },
       lines = {

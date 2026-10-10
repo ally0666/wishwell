@@ -3337,7 +3337,7 @@ do
     local people = {}
     if w then
       if (type(w[4]) == "table" or type(w[10]) == "table") and not (shipped and shipped.raid ~= "") then
-        if type(w[4]) ~= "table" then w = { w[1], w[2], w[3], {}, w[5], w[6], w[7], w[8], w[9], w[10] } end
+        if type(w[4]) ~= "table" then w = { w[1], w[2], w[3], {}, w[5], w[6], w[7], w[8], w[9], w[10], w[11] } end
         local names = Names(world, w[4], 3, w[9])
         local wide = type(w[10]) == "table" and w[10] or nil
         if wide then

@@ -1349,7 +1349,15 @@ function check(label, ok) {
 
   // How the game works, by the level 60 rules.
   const said = (question) => (run(`SlashCmdList.WISHWELL("ask ${question}")`, 'ask'), strip(ev(`(function() local last for _, e in ipairs(WishwellChat.order) do if e.kind == "a" then last = e.text end end return last end)()`)))
-  check('Wisp explains mount speed by the level 60 rules', /^Mount speed\n[\s\S]*Journeyman \(150\), from level 60: \+100%[\s\S]*There is no flying\.[\s\S]*It is in beta, so some may change\./.test(said('how does mount speed work')))
+  check('Wisp explains mount speed by the level 60 rules', /^Mount speed\n[\s\S]*Journeyman \(150\), from level 60, for epic mounts[\s\S]*There is no flying\.[\s\S]*It is in beta, so some may change\./.test(said('how does mount speed work')))
+  check('the mount sets the speed and Riding only decides which mounts, with Spurs at +4%', (() => {
+    const text = said('how does mount speed work')
+    return /The mount sets how fast you go: a normal mount is \+60%, an epic mount \+100%\./.test(text) && /only decides which mounts you can ride/.test(text)
+      && /Mithril Spurs \+4%/.test(text) && !/not the mount itself/.test(text)
+  })())
+  run(`GetNumSkillLines = function() return 1 end GetSkillLineInfo = function() return "Riding", false, false, 75 end`, 'riding 75')
+  check('with Riding 75 it says you can ride normal mounts, not that the skill gives the speed', /Your Riding skill is 75: you can ride normal mounts \(\+60%\), and epic ones at 150\./.test(said('how does mount speed work')))
+  run(`GetNumSkillLines, GetSkillLineInfo = nil, nil`, 'riding gone')
   check('and talents: 51 points', /^Talents\n[\s\S]*51 points at level 60/.test(said('how many talent points do i get')))
   run(`SlashCmdList.WISHWELL("prof")`, 'back to professions')
 
@@ -2515,6 +2523,9 @@ function check(label, ok) {
   check('leather says what it is skinned from', /Knothide Leather[^\n]* is skinned from .+ \(\d+%\)/.test(ask('where do i get knothide leather')))
   check('a fish says where it is fished up', /is fished up in .+ \((under )?[\d.]+%\)/.test(ask('where do i get spotted feltail')))
   check('a pool fish says which pools', /is found in .*School.* \((under )?[\d.]+%\)/.test(ask('where do i get furious crawdad')))
+  // A world drop with no named dropper still says how else to get it.
+  check('a world drop also says who it can be pickpocketed from', /^Ivycloth Tunic is a world drop: [\s\S]*can be pickpocketed from .+ \((under )?[\d.]+%\)/.test(ask('where do i get ivycloth tunic')))
+  check('and which chests it is found in, with the chance', /^Silver-thread Robe is a world drop: [\s\S]*can be pickpocketed from [\s\S]*is found in .*Chest.* \((under )?[\d.]+%\)/.test(ask('where does silver-thread robe drop')))
   check('an ordinary creature lists its own drops with their chances',
     /^Flesh Eater is a .*Drops \d+ things? I know of/.test(ask('what does flesh eater drop')) && /Flesh Eater · \d+%/.test(rows()))
   check('what a boss drops', /^Attumen the Huntsman is a .*Drops \d+ things? I know of/.test(ask('what does attumen the huntsman drop')) && /Attumen the Huntsman/.test(rows().split(' | ')[3]))
